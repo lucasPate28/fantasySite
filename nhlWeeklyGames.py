@@ -37,6 +37,6 @@ def weekly_games(start_date=None):
 def to_json(df):
     df.to_json("weekly_games.json", orient="records", indent=2)
  
-df = weekly_games()
+df = weekly_games(start_date="2026-03-08")
 to_json(df)
 print(f"Saved {len(df)} games to weekly_games.json")
