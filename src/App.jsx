@@ -16,7 +16,6 @@ function formatTime(utc) {
  
 function GameCell({ game, team }) {
   if (!game) return <div className="h-full w-full" />;
- 
   const isHome = game.home === team;
   const opponent = isHome ? game.away : game.home;
   const isLive = game.state === "LIVE";
@@ -26,41 +25,38 @@ function GameCell({ game, team }) {
   const theirScore = isHome ? game.away_score : game.home_score;
   const won = hasScore && myScore > theirScore;
   const lost = hasScore && myScore < theirScore;
- 
   return (
-    <div className={`
-      rounded-md p-2.5 flex flex-col gap-1 h-full border text-center transition-all duration-150
-      hover:scale-[1.03] hover:z-10 relative
+    <div className={`rounded-md p-2.5 flex flex-col gap-1 h-full border text-center transition-all duration-150 hover:scale-[1.03] hover:z-10 relative
       ${isLive ? "bg-emerald-900/40 border-emerald-500/50" : ""}
       ${isFinal && won ? "bg-slate-800/60 border-slate-600/40" : ""}
       ${isFinal && lost ? "bg-slate-900/40 border-slate-700/30" : ""}
-      ${!hasScore ? "bg-slate-800/50 border-slate-700/40" : ""}
-    `}>
+      ${!hasScore ? "bg-slate-800/50 border-slate-700/40" : ""}`}>
       {isLive && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
- 
-      <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-        {isHome ? "vs" : "@"}
-      </div>
- 
-      <div className="font-display text-xl tracking-wider leading-none text-slate-100">
-        {opponent}
-      </div>
- 
+      <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">{isHome ? "vs" : "@"}</div>
+      <div className="font-display text-xl tracking-wider leading-none text-slate-100">{opponent}</div>
       {hasScore ? (
-        <div className={`font-mono text-sm font-medium ${won ? "text-emerald-400" : lost ? "text-red-400/80" : "text-slate-400"}`}>
-          {myScore}–{theirScore}
-        </div>
+        <div className={`font-mono text-sm font-medium ${won ? "text-emerald-400" : lost ? "text-red-400/80" : "text-slate-400"}`}>{myScore}–{theirScore}</div>
       ) : (
-        <div className="font-mono text-[10px] text-amber-400/70 tracking-wide">
-          {formatTime(game.start_time)}
-        </div>
+        <div className="font-mono text-[10px] text-amber-400/70 tracking-wide">{formatTime(game.start_time)}</div>
       )}
- 
       {isFinal && (
-        <div className={`font-mono text-[9px] tracking-widest uppercase ${won ? "text-emerald-500/70" : "text-slate-600"}`}>
-          {won ? "W" : lost ? "L" : "T"}
-        </div>
+        <div className={`font-mono text-[9px] tracking-widest uppercase ${won ? "text-emerald-500/70" : "text-slate-600"}`}>{won ? "W" : lost ? "L" : "T"}</div>
       )}
+    </div>
+  );
+}
+ 
+function PickupValueCell({ value }) {
+  if (value === null || value === undefined) {
+    return <div className="h-full w-full flex items-center justify-center font-mono text-[10px] text-slate-700">—</div>;
+  }
+  // Color scale: low=slate, mid=amber, high=emerald
+  const color = value >= 7 ? "text-emerald-400" : value >= 4 ? "text-amber-400" : "text-slate-400";
+  const bg = value >= 7 ? "bg-emerald-900/20 border-emerald-700/30" : value >= 4 ? "bg-amber-900/20 border-amber-700/30" : "bg-slate-800/30 border-slate-700/30";
+  return (
+    <div className={`rounded-md p-2.5 h-full border flex flex-col items-center justify-center gap-0.5 ${bg}`}>
+      <div className={`font-mono text-lg font-medium ${color}`}>{value.toFixed(2)}</div>
+      <div className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">value</div>
     </div>
   );
 }
@@ -70,47 +66,37 @@ export default function App() {
   const [error, setError] = useState(false);
  
   useEffect(() => {
-    fetch("weekly_games.json")
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(games => {
-        // Collect all unique dates (sorted)
-        const dateSet = [...new Set(games.map(g => g.date))].sort();
+    Promise.all([
+      fetch("weekly_games.json").then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch("pickup_values.json").then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([games, pickups]) => {
+      const dateSet = [...new Set(games.map(g => g.date))].sort();
+      const teamSet = new Set();
+      games.forEach(g => { teamSet.add(g.away); teamSet.add(g.home); });
+      const teams = [...teamSet].sort();
+      const lookup = {};
+      teams.forEach(t => { lookup[t] = {}; });
+      games.forEach(g => { lookup[g.away][g.date] = g; lookup[g.home][g.date] = g; });
  
-        // Collect all unique teams
-        const teamSet = new Set();
-        games.forEach(g => { teamSet.add(g.away); teamSet.add(g.home); });
-        const teams = [...teamSet].sort();
+      // Build pickup value lookup: team -> value
+      const pickupLookup = {};
+      pickups.forEach(p => { pickupLookup[p.team] = p.pickup_value; });
  
-        // Build lookup: team -> date -> game
-        const lookup = {};
-        teams.forEach(t => { lookup[t] = {}; });
-        games.forEach(g => {
-          lookup[g.away][g.date] = g;
-          lookup[g.home][g.date] = g;
-        });
- 
-        setData({ dates: dateSet, teams, lookup });
-      })
-      .catch(() => setError(true));
+      setData({ dates: dateSet, teams, lookup, pickupLookup });
+    }).catch(() => setError(true));
   }, []);
  
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <div className="fixed inset-0 pointer-events-none opacity-[0.025]"
         style={{ backgroundImage: "repeating-linear-gradient(0deg,#fff,#fff 1px,transparent 1px,transparent 48px),repeating-linear-gradient(90deg,#fff,#fff 1px,transparent 1px,transparent 48px)" }} />
- 
       <div className="relative max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
         <header className="mb-8 pb-4 border-b border-slate-700/80 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <h1 className="font-display text-5xl tracking-widest text-white">🏒 NHL Weekly</h1>
             <p className="font-mono text-xs text-slate-500 tracking-widest mt-1 uppercase">Team Schedule · All times Eastern</p>
           </div>
-          {data && (
-            <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">
-              {data.teams.length} teams · {data.dates.length} days
-            </p>
-          )}
+          {data && <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">{data.teams.length} teams · {data.dates.length} days</p>}
         </header>
  
         {error && (
@@ -119,15 +105,11 @@ export default function App() {
             <p>Run <code className="bg-slate-800 px-2 py-0.5 rounded text-amber-400">python nhl_weekly.py</code> then place the file in <code className="bg-slate-800 px-2 py-0.5 rounded text-amber-400">public/</code></p>
           </div>
         )}
- 
-        {!error && !data && (
-          <p className="text-center text-slate-500 font-mono text-sm mt-20 animate-pulse tracking-widest">Loading schedule...</p>
-        )}
+        {!error && !data && <p className="text-center text-slate-500 font-mono text-sm mt-20 animate-pulse tracking-widest">Loading schedule...</p>}
  
         {data && (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ minWidth: `${180 + data.dates.length * 110}px` }}>
-              {/* Day headers */}
+            <table className="w-full border-collapse" style={{ minWidth: `${180 + data.dates.length * 110 + 120}px` }}>
               <thead>
                 <tr>
                   <th className="pb-3 pr-4 text-left w-[140px]">
@@ -142,27 +124,30 @@ export default function App() {
                       </th>
                     );
                   })}
+                  {/* Pickup value header — right after last day */}
+                  <th className="pb-3 pl-3 text-center min-w-[110px] border-l border-slate-700/50">
+                    <div className="font-display text-lg tracking-widest text-violet-400">PU Val</div>
+                    <div className="font-mono text-[10px] text-slate-500">Pickup</div>
+                  </th>
                 </tr>
               </thead>
- 
-              {/* Team rows */}
               <tbody>
                 {data.teams.map((team, ti) => (
                   <tr key={team} className={ti % 2 === 0 ? "bg-slate-800/10" : ""}>
-                    {/* Team name */}
                     <td className="py-1.5 pr-4 align-middle">
                       <div className="flex items-center gap-2">
                         <div className="w-px h-6 bg-amber-500/40" />
                         <span className="font-display text-2xl tracking-widest text-slate-100">{team}</span>
                       </div>
                     </td>
- 
-                    {/* Game cells */}
                     {data.dates.map(date => (
                       <td key={date} className="py-1.5 px-1.5 align-middle h-20">
                         <GameCell game={data.lookup[team][date] || null} team={team} />
                       </td>
                     ))}
+                    <td className="py-1.5 pl-3 px-1.5 align-middle h-20 border-l border-slate-700/50">
+                      <PickupValueCell value={data.pickupLookup[team] ?? null} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -173,3 +158,4 @@ export default function App() {
     </div>
   );
 }
+
