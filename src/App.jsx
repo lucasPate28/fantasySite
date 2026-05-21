@@ -33,7 +33,12 @@ function GameCell({ game, team }) {
       ${!hasScore ? "bg-slate-800/50 border-slate-700/40" : ""}`}>
       {isLive && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
       <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">{isHome ? "vs" : "@"}</div>
-      <div className="font-display text-xl tracking-wider leading-none text-slate-100">{opponent}</div>
+      <img
+        src={`/logos/${opponent}.png`}
+        alt={opponent}
+        className="w-10 h-10 object-contain mx-auto"
+        onError={e => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: opponent, className: 'font-display text-xl tracking-wider text-slate-100' })) }}
+      />
       {hasScore ? (
         <div className={`font-mono text-sm font-medium ${won ? "text-emerald-400" : lost ? "text-red-400/80" : "text-slate-400"}`}>{myScore}–{theirScore}</div>
       ) : (
