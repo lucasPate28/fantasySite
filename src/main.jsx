@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import Navbar from "./components/NavBar";
 import Home from "./Home";
-import App from "./App";
+import Schedule from "./Schedule";
  
 function Layout() {
   return (
@@ -12,7 +12,7 @@ function Layout() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/schedule" element={<App />} />
+        <Route path="/schedule" element={<Schedule />} />
       </Routes>
     </>
   );

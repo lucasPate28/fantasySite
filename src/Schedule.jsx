@@ -32,7 +32,7 @@ function GameCell({ game, team }) {
       ${isFinal && lost ? "bg-slate-900/40 border-slate-700/30" : ""}
       ${!hasScore ? "bg-slate-800/50 border-slate-700/40" : ""}`}>
       {isLive && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-      <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">{isHome ? "vs" : "@"}</div>
+      <div className="font-mono text-[10px] text-amber-500 uppercase tracking-widest">{isHome ? "vs" : "@"}{"|"}{formatTime(game.start_time)}</div>
       <img
         src={`/logos/${opponent}.png`}
         alt={opponent}
@@ -42,7 +42,7 @@ function GameCell({ game, team }) {
       {hasScore ? (
         <div className={`font-mono text-sm font-medium ${won ? "text-emerald-400" : lost ? "text-red-400/80" : "text-slate-400"}`}>{myScore}–{theirScore}</div>
       ) : (
-        <div className="font-mono text-[10px] text-amber-400/70 tracking-wide">{formatTime(game.start_time)}</div>
+        <div className="font-mono text-[10px] text-amber-400/70 tracking-wide">{}</div>
       )}
       {isFinal && (
         <div className={`font-mono text-[9px] tracking-widest uppercase ${won ? "text-emerald-500/70" : "text-slate-600"}`}>{won ? "W" : lost ? "L" : "T"}</div>
@@ -98,7 +98,7 @@ export default function App() {
       <div className="relative max-w-7xl mx-auto px-4 py-8">
         <header className="mb-8 pb-4 border-b border-slate-700/80 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
-            <h1 className="font-display text-5xl tracking-widest text-white">🏒 NHL Weekly</h1>
+            <h1 className="font-display text-5xl tracking-widest text-white">Weekly Schedule</h1>
             <p className="font-mono text-xs text-slate-500 tracking-widest mt-1 uppercase">Team Schedule · All times Eastern</p>
           </div>
           {data && <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">{data.teams.length} teams · {data.dates.length} days</p>}
