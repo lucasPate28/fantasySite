@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const links = [
   { label: "Home", href: "/" },
   { label: "Schedule", href: "/schedule" },
+  { label: "Player Search", href: "/playersearch" },
 ];
  
 export default function Navbar() {

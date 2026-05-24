@@ -5,6 +5,7 @@ import "./index.css";
 import Navbar from "./components/NavBar";
 import Home from "./Home";
 import Schedule from "./Schedule";
+import PlayerSearch from "./PlayerSearch";
  
 function Layout() {
   return (
@@ -13,6 +14,7 @@ function Layout() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/schedule" element={<Schedule />} />
+        <Route path="/playersearch" element={<PlayerSearch />} />
       </Routes>
     </>
   );
