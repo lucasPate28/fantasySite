@@ -142,6 +142,12 @@ export default function App() {
                     <td className="py-1.5 pr-4 align-middle">
                       <div className="flex items-center gap-2">
                         <div className="w-px h-6 bg-amber-500/40" />
+                        <img
+                          src={`/logos/${team}.png`}
+                          alt={team}
+                          className="w-8 h-8 object-contain"
+                          onError={e => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: team, className: 'font-display text-xl tracking-wider text-slate-100' })) }}
+                        />
                         <span className="font-display text-2xl tracking-widest text-slate-100">{team}</span>
                       </div>
                     </td>
