@@ -34,24 +34,55 @@ const PlayerSearcher = () => {
   }
  
   async function IDSearch(name) {
+    console.log(`Searching for player ID with name: "${name}"`);
     const encodedQuery = encodeURIComponent(name.trim());
-    const url = `https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=5&q=${encodedQuery}&active=true`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data = await response.json();
-      setPlayerID(data[0]?.playerId ?? null);
-    } catch (err) {
-      console.error(err);
-      setPlayerID(null);
-    }
+      const url = `/api-search/search/player?culture=en-us&limit=20&q=${encodedQuery}&active=true`;
+      
+      try {
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        console.log(data);
+        const target = name.toLowerCase().trim();
+        const exact = data.find(p =>
+          p.name.toLowerCase() === target
+        );
+        setPlayerID(exact?.playerId ?? null);
+        //Total Stats 
+        
+          try {
+          const turl = `/api-nhl/player/${exact.playerId}/landing`;
+          const response = await fetch(turl);
+          if (!response.ok) throw new Error('Failed to fetch player stats');
+          
+          const data = await response.json();
+          
+          // This gives you the comprehensive array of their yearly career stats
+          const careerSeasonStats = data.seasonTotals || [];
+          
+          // Filter to only look at regular season NHL data if needed
+          const nhlRegularSeasons = careerSeasonStats.filter(
+            (year) => year.leagueAbbrev === 'NHL' && year.gameTypeId === 2
+          );
+          console.log("NHL Regular Season Stats:", nhlRegularSeasons);
+          return nhlRegularSeasons;
+        } catch (error) {
+          console.error("Error loading season stats:", error);
+          return [];
+        }
+          } catch (err) {
+            console.error(err);
+            setPlayerID(null);
+          }
   }
- 
+  
   // i) shared function called by both submit and autocomplete click
-  function runSearch(name) {
+  async function runSearch(name) {
     setSearchTerm(name);
+    const id = await IDSearch(name);  // wait for the real ID
+         // pass it directly, not stale state
     setResult(binarySearch(name));
-    IDSearch(name);
   }
  
   const handleSubmit = (e) => {
@@ -108,7 +139,12 @@ const PlayerSearcher = () => {
             />
             <div className="flex-1 h-px bg-slate-700/60" />
           </div>
- 
+          <div className="font-mono text-sm text-slate-500 uppercase tracking-widest mb-6">
+            <span className="inline-flex items-center gap-1 text-red-400">Last Season's Stats (2025-26)&nbsp;</span>
+            <span className="inline-flex items-center gap-1">G: {parseFloat(result.G)} &nbsp;</span>
+            <span className="inline-flex items-center gap-1">A: {parseFloat(result.A).toFixed(1)} &nbsp;</span>
+            <span className="inline-flex items-center gap-1">P: {parseFloat(result.PTS).toFixed(1)} &nbsp;</span>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-900/50 border border-slate-700/40 rounded-md p-4 flex flex-col gap-1">
               <span className="font-mono text-[18px] text-slate-500 uppercase tracking-widest">Fantasy Points</span>
