@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Papa from "papaparse";
  
 const PlayerSearcher = () => {
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [players, setPlayers] = useState([]);
   const [result, setResult] = useState(undefined);
+  const [playerID, setPlayerID] = useState(null);
  
   const filteredData = players.filter((item) =>
     item.NAME.toLowerCase().includes(searchTerm.toLowerCase())
@@ -25,7 +25,7 @@ const PlayerSearcher = () => {
     const target = name.toLowerCase().trim();
     while (lo <= hi) {
       const mid = Math.floor((lo + hi) / 2);
-      const val = players[mid].NAME.toLowerCase();  // fixed: NAME not name
+      const val = players[mid].NAME.toLowerCase();
       if (val === target) return players[mid];
       if (val < target) lo = mid + 1;
       else hi = mid - 1;
@@ -33,14 +33,41 @@ const PlayerSearcher = () => {
     return null;
   }
  
+  async function IDSearch(name) {
+    const encodedQuery = encodeURIComponent(name.trim());
+    const url = `https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=5&q=${encodedQuery}&active=true`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const data = await response.json();
+      setPlayerID(data[0]?.playerId ?? null);
+    } catch (err) {
+      console.error(err);
+      setPlayerID(null);
+    }
+  }
+ 
+  // i) shared function called by both submit and autocomplete click
+  function runSearch(name) {
+    setSearchTerm(name);
+    setResult(binarySearch(name));
+    IDSearch(name);
+  }
+ 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setResult(binarySearch(searchTerm));  // fixed: removed redundant handleSearch
+    runSearch(searchTerm);
   };
+ 
   const handleAuto = (e) => {
-    setSearchTerm(e.target.innerText);
-    setResult(binarySearch(e.target.innerText));
+    runSearch(e.target.innerText);
   };
+ 
+  // ii) reset result to undefined when user focuses input so list reappears
+  const handleFocus = () => {
+    setResult(undefined);
+  };
+ 
   return (
     <div className="flex flex-col items-center justify-center p-6 w-full mx-auto">
       <form onSubmit={handleSubmit}>
@@ -49,15 +76,16 @@ const PlayerSearcher = () => {
           placeholder="Search for a player"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={handleFocus}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all max-w-lg"
         />
       </form>
  
-      {searchTerm && (
+      {searchTerm && result === undefined && (
         <ul className="w-full mt-4 bg-white border border-gray-200 rounded-lg divide-y divide-gray-100 shadow-sm max-w-lg">
           {filteredData.length > 0 ? (
             filteredData.map((item, index) => (
-              <li key={index} className="px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors" onClick={handleAuto}>
+              <li key={index} className="px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer" onClick={handleAuto}>
                 {item.NAME}
               </li>
             ))
@@ -76,7 +104,7 @@ const PlayerSearcher = () => {
             <img
               src={`/logos/${result.TEAM}.png`}
               className="w-10 h-10 object-contain mx-auto"
-              onError={e => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: opponent, className: 'font-display text-xl tracking-wider text-slate-100' })) }}
+              onError={e => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: result.TEAM, className: 'font-display text-xl tracking-wider text-slate-100' })) }}
             />
             <div className="flex-1 h-px bg-slate-700/60" />
           </div>
@@ -87,7 +115,6 @@ const PlayerSearcher = () => {
               <span className="font-display text-3xl tracking-widest text-slate-100">{result.FP}</span>
             </div>
             <div className="bg-slate-900/50 border border-slate-700/40 rounded-md p-4 flex flex-col gap-1">
-        
               <span className="font-mono text-[18px] text-slate-500 uppercase tracking-widest">Fair Market Value</span>
               <p className="font-mono text-[12px] text-slate-500 uppercase tracking-widest">How much an average performing manager would pay in Auction Draft</p>
               <span className="font-display text-3xl tracking-widest text-amber-400">{"$" + result["/$"]}</span>
@@ -97,12 +124,16 @@ const PlayerSearcher = () => {
               <span className={`font-display text-3xl tracking-widest ${parseFloat(result.VORP) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {result.VORP}
               </span>
+              {/* iii) Player ID label */}
+              <span className="font-mono text-[12px] text-slate-500 uppercase tracking-widest mt-2">
+                Player ID: <span className="text-slate-300">{playerID ?? "loading..."}</span>
+              </span>
             </div>
           </div>
         </div>
       )}
  
-      {result === null && searchTerm && (  // fixed: searchTerm not query
+      {result === null && searchTerm && (
         <p className="font-mono text-sm text-slate-500 mt-6 tracking-widest">No player found for "{searchTerm}"</p>
       )}
     </div>
@@ -110,3 +141,4 @@ const PlayerSearcher = () => {
 };
  
 export default PlayerSearcher;
+ 
