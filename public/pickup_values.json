@@ -1,130 +1,130 @@
 [
   {
     "team":"ANA",
-    "pickup_value":1.6171875
+    "pickup_value":0.90234375
   },
   {
     "team":"BOS",
-    "pickup_value":1.6171875
+    "pickup_value":2.14453125
   },
   {
     "team":"BUF",
-    "pickup_value":1.6171875
+    "pickup_value":1.08984375
   },
   {
     "team":"CAR",
-    "pickup_value":0.80859375
+    "pickup_value":2.14453125
   },
   {
     "team":"CBJ",
-    "pickup_value":1.7109375
+    "pickup_value":1.08984375
   },
   {
     "team":"CGY",
-    "pickup_value":1.7109375
+    "pickup_value":1.08984375
   },
   {
     "team":"CHI",
-    "pickup_value":2.1796875
+    "pickup_value":1.9921875
   },
   {
     "team":"COL",
-    "pickup_value":1.6171875
+    "pickup_value":1.3046875
   },
   {
     "team":"DAL",
-    "pickup_value":1.6171875
+    "pickup_value":1.2421875
   },
   {
     "team":"DET",
-    "pickup_value":1.6171875
+    "pickup_value":0.90234375
   },
   {
     "team":"EDM",
-    "pickup_value":2.3671875
+    "pickup_value":1.9921875
   },
   {
     "team":"FLA",
-    "pickup_value":0.57421875
+    "pickup_value":1.65234375
   },
   {
     "team":"LAK",
-    "pickup_value":2.4609375
+    "pickup_value":1.3046875
   },
   {
     "team":"MIN",
-    "pickup_value":1.6171875
+    "pickup_value":1.08984375
   },
   {
     "team":"MTL",
-    "pickup_value":1.55859375
+    "pickup_value":1.2421875
   },
   {
     "team":"NJD",
-    "pickup_value":1.27734375
+    "pickup_value":1.08984375
   },
   {
     "team":"NSH",
-    "pickup_value":0.57421875
+    "pickup_value":1.08984375
   },
   {
     "team":"NYI",
-    "pickup_value":1.55859375
+    "pickup_value":1.3046875
   },
   {
     "team":"NYR",
-    "pickup_value":1.7109375
+    "pickup_value":2.5546875
   },
   {
     "team":"OTT",
-    "pickup_value":2.12109375
+    "pickup_value":0.33984375
   },
   {
     "team":"PHI",
-    "pickup_value":2.35546875
+    "pickup_value":2.0546875
   },
   {
     "team":"PIT",
-    "pickup_value":1.6171875
+    "pickup_value":1.3046875
   },
   {
     "team":"SEA",
-    "pickup_value":0.80859375
+    "pickup_value":1.08984375
   },
   {
     "team":"SJS",
-    "pickup_value":0.80859375
+    "pickup_value":1.08984375
   },
   {
     "team":"STL",
-    "pickup_value":2.3671875
+    "pickup_value":1.2421875
   },
   {
     "team":"TBL",
-    "pickup_value":1.6171875
+    "pickup_value":1.08984375
   },
   {
     "team":"TOR",
-    "pickup_value":0.80859375
+    "pickup_value":2.20703125
   },
   {
     "team":"UTA",
-    "pickup_value":1.7109375
+    "pickup_value":1.08984375
   },
   {
     "team":"VAN",
-    "pickup_value":1.37109375
+    "pickup_value":1.9921875
   },
   {
     "team":"VGK",
-    "pickup_value":1.6171875
+    "pickup_value":1.8046875
   },
   {
     "team":"WPG",
-    "pickup_value":0.80859375
+    "pickup_value":0.90234375
   },
   {
     "team":"WSH",
-    "pickup_value":2.35546875
+    "pickup_value":1.2421875
   }
 ]

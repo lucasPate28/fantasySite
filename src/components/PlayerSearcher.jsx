@@ -20,17 +20,9 @@ const PlayerSearcher = () => {
       });
   }, []);
  
-  function binarySearch(name) {
-    let lo = 0, hi = players.length - 1;
+  function findExactMatch(name) {
     const target = name.toLowerCase().trim();
-    while (lo <= hi) {
-      const mid = Math.floor((lo + hi) / 2);
-      const val = players[mid].NAME.toLowerCase();
-      if (val === target) return players[mid];
-      if (val < target) lo = mid + 1;
-      else hi = mid - 1;
-    }
-    return null;
+    return players.find(player => player.NAME.toLowerCase() === target) || null;
   }
  
   async function IDSearch(name) {
@@ -82,7 +74,7 @@ const PlayerSearcher = () => {
     setSearchTerm(name);
     const id = await IDSearch(name);  // wait for the real ID
          // pass it directly, not stale state
-    setResult(binarySearch(name));
+    setResult(findExactMatch(name));
   }
  
   const handleSubmit = (e) => {
@@ -177,4 +169,3 @@ const PlayerSearcher = () => {
 };
  
 export default PlayerSearcher;
- 
