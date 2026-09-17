@@ -103,6 +103,14 @@ export default function App() {
           </div>
           {data && <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">{data.teams.length} teams · {data.dates.length} days</p>}
         </header>
+        <div className="w-full bg-slate-800/40 border-b border-slate-700/60 py-8 mb-8 text-center">
+          <h1 className="font-display text-4xl md:text-5xl tracking-widest text-amber-400 drop-shadow-sm">
+            Opening Week!
+          </h1>
+          <p className="font-mono text-sm text-slate-500 uppercase tracking-widest mt-3">
+            2026-27 Fantasy Hockey Season
+          </p>
+        </div>
  
         {error && (
           <div className="text-center mt-20 font-mono text-sm text-slate-400 leading-8">
