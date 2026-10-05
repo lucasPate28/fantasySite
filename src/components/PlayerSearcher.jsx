@@ -9,9 +9,13 @@ const PlayerSearcher = () => {
   const [rankResults, setRankResults] = useState([]);
   const [playerID, setPlayerID] = useState(null);
   const [activeCsv, setActiveCsv] = useState('/players.csv');
+
+  // State to store live current season stats pulled from the NHL API
+  const [currentSeasonStats, setCurrentSeasonStats] = useState(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
  
   const filteredData = players.filter((item) =>
-    item.NAME.toLowerCase().includes(searchTerm.toLowerCase())
+    item.NAME?.toLowerCase().includes(searchTerm.toLowerCase())
   );
  
   // Re-fetch data whenever the activeCsv changes
@@ -21,16 +25,15 @@ const PlayerSearcher = () => {
       .then(text => {
         const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
         setPlayers(data);
-        // Reset search states when switching datasets
         setSearchTerm('');
         setRankSearchTerm('');
         setResult(undefined);
         setRankResults([]);
         setPlayerID(null);
+        setCurrentSeasonStats(null);
       });
   }, [activeCsv]);
  
-  // Helper to safely get the rank from Column A (falls back to first object key if header is empty)
   const getPlayerRank = (p) => {
     if (!p) return null;
     return parseInt(p.Rank || p[Object.keys(p)[0]], 10);
@@ -38,58 +41,67 @@ const PlayerSearcher = () => {
 
   function findExactMatch(name) {
     const target = name.toLowerCase().trim();
-    return players.find(player => player.NAME.toLowerCase() === target) || null;
+    return players.find(player => player.NAME?.toLowerCase() === target) || null;
   }
  
   async function IDSearch(name) {
-    console.log(`Searching for player ID with name: "${name}"`);
+    setIsStatsLoading(true);
+    setCurrentSeasonStats(null);
     const encodedQuery = encodeURIComponent(name.trim());
     const url = `/api-search/search/player?culture=en-us&limit=20&q=${encodedQuery}&active=true`;
     
     try {
       const response = await fetch(url);
-      
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       const data = await response.json();
-      console.log(data);
-      const target = name.toLowerCase().trim();
-      const exact = data.find(p => p.name.toLowerCase() === target);
-      setPlayerID(exact?.playerId ?? null);
       
-      // Total Stats 
-      try {
-        const turl = `/api-nhl/player/${exact.playerId}/landing`;
-        const response = await fetch(turl);
-        if (!response.ok) throw new Error('Failed to fetch player stats');
-        
-        const statsData = await response.json();
-        
-        // This gives you the comprehensive array of their yearly career stats
+      const target = name.toLowerCase().trim();
+      const exact = data.find(p => p.name?.toLowerCase() === target);
+
+      if (!exact?.playerId) {
+        setPlayerID(null);
+        setIsStatsLoading(false);
+        return;
+      }
+
+      setPlayerID(exact.playerId);
+      
+      // Fetch Player Landing endpoint
+      const turl = `/api-nhl/player/${exact.playerId}/landing`;
+      const statsResponse = await fetch(turl);
+      if (!statsResponse.ok) throw new Error('Failed to fetch player stats');
+      
+      const statsData = await statsResponse.json();
+      
+      // Try featuredStats first (current season snapshot provided by NHL API)
+      const featured = statsData.featuredStats?.regularSeason?.subSeason;
+
+      if (featured) {
+        setCurrentSeasonStats(featured);
+      } else {
+        // Fallback: extract the most recent regular season record from seasonTotals
         const careerSeasonStats = statsData.seasonTotals || [];
-        
-        // Filter to only look at regular season NHL data if needed
         const nhlRegularSeasons = careerSeasonStats.filter(
           (year) => year.leagueAbbrev === 'NHL' && year.gameTypeId === 2
         );
-        console.log("NHL Regular Season Stats:", nhlRegularSeasons);
-        return nhlRegularSeasons;
-      } catch (error) {
-        console.error("Error loading season stats:", error);
-        return [];
+        const latestSeason = nhlRegularSeasons[nhlRegularSeasons.length - 1] || null;
+        setCurrentSeasonStats(latestSeason);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error searching player or stats:", err);
       setPlayerID(null);
+      setCurrentSeasonStats(null);
+    } finally {
+      setIsStatsLoading(false);
     }
   }
   
-  // i) shared function called by both submit and autocomplete click
   async function runSearch(name) {
     setSearchTerm(name);
     setRankSearchTerm('');
     setRankResults([]);
-    const id = await IDSearch(name); 
     setResult(findExactMatch(name));
+    await IDSearch(name); 
   }
  
   const handleNameSubmit = (e) => {
@@ -128,9 +140,9 @@ const PlayerSearcher = () => {
     setRankResults(matches);
     setResult(undefined);
     setSearchTerm('');
+    setCurrentSeasonStats(null);
   };
  
-  // ii) reset result to undefined when user focuses inputs so lists reappear
   const handleFocusName = () => {
     setResult(undefined);
     setRankResults([]);
@@ -143,7 +155,7 @@ const PlayerSearcher = () => {
   return (
     <div className="flex flex-col items-center justify-center p-6 w-full mx-auto">
       
-      {/* Dataset Selection Buttons */}
+      {/* Dataset Selection */}
       <div className="flex flex-wrap gap-3 mb-6">
         {[
           { label: 'Dataset 1', file: '/players.csv' },
@@ -238,7 +250,6 @@ const PlayerSearcher = () => {
       {result && (
         <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-10 mt-6 w-full">
           <div className="flex items-center gap-4 mb-4">
-            {/* Displaying Rank as a visual badge */}
             {getPlayerRank(result) && (
                <div className="bg-amber-400 text-slate-900 font-display text-2xl px-3 py-1 rounded-md shadow-sm">
                  #{getPlayerRank(result)}
@@ -249,17 +260,52 @@ const PlayerSearcher = () => {
             <span className="font-mono text-md text-slate-500 uppercase tracking-widest">{result.TEAM}</span>
             <img
               src={`/logos/${result.TEAM}.png`}
+              alt={result.TEAM}
               className="w-10 h-10 object-contain mx-auto"
               onError={e => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: result.TEAM, className: 'font-display text-xl tracking-wider text-slate-100' })) }}
             />
             <div className="flex-1 h-px bg-slate-700/60" />
           </div>
-          <div className="font-mono text-sm text-slate-500 uppercase tracking-widest mb-6">
-            <span className="inline-flex items-center gap-1 text-red-400">Last Season's Stats (2025-26)&nbsp;</span>
-            <span className="inline-flex items-center gap-1">G: {parseFloat(result.G)} &nbsp;</span>
-            <span className="inline-flex items-center gap-1">A: {parseFloat(result.A).toFixed(1)} &nbsp;</span>
-            <span className="inline-flex items-center gap-1">P: {parseFloat(result.PTS).toFixed(1)} &nbsp;</span>
+
+          {/* Last Season's CSV Stats */}
+          <div className="font-mono text-sm text-slate-400 uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1 text-red-400 font-semibold">Last Season (CSV):&nbsp;</span>
+            <span className="inline-flex items-center gap-1">GP: {result.GP || '-'} &nbsp;</span>
+            <span className="inline-flex items-center gap-1">G: {parseFloat(result.G || 0)} &nbsp;</span>
+            <span className="inline-flex items-center gap-1">A: {parseFloat(result.A || 0).toFixed(1)} &nbsp;</span>
+            <span className="inline-flex items-center gap-1">P: {parseFloat(result.PTS || 0).toFixed(1)} &nbsp;</span>
           </div>
+
+          {/* Current Season API Stats */}
+          <div className="font-mono text-sm text-slate-400 uppercase tracking-widest mb-6">
+            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">Current Season (Live):&nbsp;</span>
+            {isStatsLoading ? (
+              <span className="text-slate-500 animate-pulse">Fetching live stats...</span>
+            ) : currentSeasonStats ? (
+              result.POS === 'G' ? (
+                <>
+                  <span className="inline-flex items-center gap-1">GP: {currentSeasonStats.gamesPlayed ?? '-'} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">W: {currentSeasonStats.wins ?? 0} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">L: {currentSeasonStats.losses ?? 0} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">GAA: {typeof currentSeasonStats.goalsAgainstAvg === 'number' ? currentSeasonStats.goalsAgainstAvg.toFixed(2) : (currentSeasonStats.goalsAgainstAvg ?? '-')} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">SV%: {typeof currentSeasonStats.savePctg === 'number' ? (currentSeasonStats.savePctg * 100).toFixed(1) + '%' : '-'}</span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1">GP: {currentSeasonStats.gamesPlayed ?? '-'} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">G: {currentSeasonStats.goals ?? 0} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">A: {currentSeasonStats.assists ?? 0} &nbsp;</span>
+                  <span className="inline-flex items-center gap-1">P: {currentSeasonStats.points ?? 0} &nbsp;</span>
+                  {currentSeasonStats.plusMinus !== undefined && (
+                    <span className="inline-flex items-center gap-1">+/-: {currentSeasonStats.plusMinus}</span>
+                  )}
+                </>
+              )
+            ) : (
+              <span className="text-slate-500 italic">No games played or data unavailable yet</span>
+            )}
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-900/50 border border-slate-700/40 rounded-md p-4 flex flex-col gap-1">
               <span className="font-mono text-[18px] text-slate-500 uppercase tracking-widest">Fantasy Points</span>
@@ -267,7 +313,7 @@ const PlayerSearcher = () => {
             </div>
             <div className="bg-slate-900/50 border border-slate-700/40 rounded-md p-4 flex flex-col gap-1">
               <span className="font-mono text-[18px] text-slate-500 uppercase tracking-widest">Fair Market Value</span>
-              <p className="font-mono text-[12px] text-slate-500 uppercase tracking-widest">How much an average performing manager would pay in Auction Draft</p>
+              <p className="font-mono text-[12px] text-slate-500 uppercase tracking-widest">Auction Draft FMV</p>
               <span className="font-display text-3xl tracking-widest text-amber-400">{"$" + result["/$"]}</span>
             </div>
             <div className="bg-slate-900/50 border border-slate-700/40 rounded-md p-4 flex flex-col gap-1">
@@ -276,7 +322,7 @@ const PlayerSearcher = () => {
                 {result.VORP}
               </span>
               <span className="font-mono text-[12px] text-slate-500 uppercase tracking-widest mt-2">
-                Player ID: <span className="text-slate-300">{playerID ?? "loading..."}</span>
+                Player ID: <span className="text-slate-300">{playerID ?? (isStatsLoading ? "loading..." : "N/A")}</span>
               </span>
             </div>
           </div>

@@ -105,7 +105,7 @@ export default function App() {
         </header>
         <div className="w-full bg-slate-800/40 border-b border-slate-700/60 py-8 mb-8 text-center">
           <h1 className="font-display text-4xl md:text-5xl tracking-widest text-amber-400 drop-shadow-sm">
-            Opening Week!
+            Week 2
           </h1>
           <p className="font-mono text-sm text-slate-500 uppercase tracking-widest mt-3">
             2026-27 Fantasy Hockey Season
