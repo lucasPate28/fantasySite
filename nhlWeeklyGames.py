@@ -72,7 +72,7 @@ def pickup_values() -> pd.DataFrame:
 
 
 
-df = weekly_games(start_date="2026-11-10")
+df = weekly_games(start_date="2026-11-16")
 to_json(df)
 print(f"Saved {len(df)} games to weekly_games.json")
 bf = pickup_values()
