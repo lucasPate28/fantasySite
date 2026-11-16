@@ -15,7 +15,13 @@ function formatTime(utc) {
 }
  
 function GameCell({ game, team }) {
-  if (!game) return <div className="h-full w-full" />;
+  // Renders a subtle indicator box when a team has no games on this day
+  if (!game) return (
+    <div className="rounded-md p-2.5 flex flex-col items-center justify-center gap-1 h-full border border-slate-700/20 bg-slate-800/10 text-center">
+      <span className="font-mono text-xs text-slate-600/70 tracking-widest">—</span>
+    </div>
+  );
+  
   const isHome = game.home === team;
   const opponent = isHome ? game.away : game.home;
   const isLive = game.state === "LIVE";
@@ -25,6 +31,7 @@ function GameCell({ game, team }) {
   const theirScore = isHome ? game.away_score : game.home_score;
   const won = hasScore && myScore > theirScore;
   const lost = hasScore && myScore < theirScore;
+  
   return (
     <div className={`rounded-md p-2.5 flex flex-col gap-1 h-full border text-center transition-all duration-150 hover:scale-[1.03] hover:z-10 relative
       ${isLive ? "bg-emerald-900/40 border-emerald-500/50" : ""}
@@ -66,7 +73,6 @@ function PickupValueCell({ value }) {
     color = "text-red-400";
     bg = "bg-red-900/30 border-red-800/40";
   } else if (value <= 2.2) {
-    // Treat around 2 as neutral/white
     color = "text-slate-100";
     bg = "bg-slate-800/60 border-slate-700/50";
   } else if (value < 3.0) {
@@ -88,17 +94,46 @@ function PickupValueCell({ value }) {
 export default function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-  const [sortOrder, setSortOrder] = useState(null); // 'desc', 'asc', or null
+  const [sortOrder, setSortOrder] = useState(null); 
  
   useEffect(() => {
     Promise.all([
       fetch("weekly_games.json").then(r => { if (!r.ok) throw new Error(); return r.json(); }),
       fetch("pickup_values.json").then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([games, pickups]) => {
-      const dateSet = [...new Set(games.map(g => g.date))].sort();
+      // 1. Get the earliest and latest dates in the loaded JSON
+      const rawDates = [...new Set(games.map(g => g.date))].sort();
+      let fullWeekDates = [];
+      
+      if (rawDates.length > 0) {
+        const firstDate = new Date(rawDates[0] + "T12:00:00");
+        const lastDate = new Date(rawDates[rawDates.length - 1] + "T12:00:00");
+        
+        // 2. Snap the start date backwards to Monday (standard fantasy week start)
+        const startDay = firstDate.getDay();
+        const startDiff = startDay === 0 ? 6 : startDay - 1; // 0 is Sunday
+        const startDate = new Date(firstDate);
+        startDate.setDate(firstDate.getDate() - startDiff);
+
+        // 3. Snap the end date forward to Sunday
+        const endDay = lastDate.getDay();
+        const endDiff = endDay === 0 ? 0 : 7 - endDay;
+        const endDate = new Date(lastDate);
+        endDate.setDate(lastDate.getDate() + endDiff);
+
+        // 4. Fill in every single day continuously to ensure a full Monday-Sunday block
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          fullWeekDates.push(`${yyyy}-${mm}-${dd}`);
+        }
+      }
+
       const teamSet = new Set();
       games.forEach(g => { teamSet.add(g.away); teamSet.add(g.home); });
       const teams = [...teamSet].sort();
+      
       const lookup = {};
       teams.forEach(t => { lookup[t] = {}; });
       games.forEach(g => { lookup[g.away][g.date] = g; lookup[g.home][g.date] = g; });
@@ -106,7 +141,7 @@ export default function App() {
       const pickupLookup = {};
       pickups.forEach(p => { pickupLookup[p.team] = p.pickup_value; });
  
-      setData({ dates: dateSet, teams, lookup, pickupLookup });
+      setData({ dates: fullWeekDates, teams, lookup, pickupLookup });
     }).catch(() => setError(true));
   }, []);
 
